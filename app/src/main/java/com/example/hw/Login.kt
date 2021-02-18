@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.EditText
+import android.widget.Toast
 import java.io.File
 import java.io.FileWriter
 
@@ -77,7 +78,7 @@ class Login : AppCompatActivity() {
             code += n.toString()
         }
         users[editTextHello.text.toString()] = code
-
+        Toast.makeText(this@Login, "Registered: " + editTextHello.text.toString(), Toast.LENGTH_SHORT).show()
         UpdateUsers()
     }
 }
