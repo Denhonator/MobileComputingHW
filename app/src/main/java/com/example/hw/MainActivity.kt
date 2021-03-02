@@ -145,6 +145,14 @@ class MainActivity : ListActivity() {
             curIcon = reminderList[position].icon
             val image: ImageButton? = findViewById(R.id.imageButton)
             image?.setImageResource(if (curIcon == 0) R.drawable.time else R.drawable.night)
+            val timePicker1: TimePicker = findViewById(R.id.timePicker1);
+            val datePicker: DatePicker = findViewById(R.id.simpleDatePicker)
+            val times = reminderList[position].reminder_time.split(".")
+            datePicker.updateDate(times[0].toInt(), times[1].toInt(), times[2].toInt())
+            timePicker1.hour = times[3].toInt()
+            timePicker1.minute = times[4].toInt()
+            val notif: Switch? = findViewById(R.id.switch1)
+            notif?.isChecked = false
             reminderIndex = position
             mydatabase.delete(
                 "Reminders",
@@ -196,7 +204,7 @@ class MainActivity : ListActivity() {
 
                 val reminderWorkRequest: WorkRequest =
                     OneTimeWorkRequestBuilder<ReminderWorker>()
-                        .setInitialDelay(pickedMillis-curMillis, TimeUnit.MINUTES)
+                        .setInitialDelay(pickedMillis-curMillis, TimeUnit.MILLISECONDS)
                         .setInputData(
                             workDataOf(
                                 "message" to newReminder.message,
@@ -220,6 +228,7 @@ class MainActivity : ListActivity() {
         }
         else {
             editReminder?.visibility = View.VISIBLE
+            editReminder?.setText("Message")
             val NOButton: Button? = findViewById(R.id.NOButton)
             NOButton?.text = notext
             val OKButton: Button? = findViewById(R.id.OKButton)
@@ -229,6 +238,14 @@ class MainActivity : ListActivity() {
             timePicker1?.visibility = View.VISIBLE
             datePicker?.visibility = View.VISIBLE
             notif?.visibility = View.VISIBLE
+
+            val timePicker1: TimePicker = findViewById(R.id.timePicker1);
+            val datePicker: DatePicker = findViewById(R.id.simpleDatePicker)
+            datePicker.updateDate(LocalDateTime.now().year, LocalDateTime.now().monthValue-1, LocalDateTime.now().dayOfMonth)
+            timePicker1.hour = LocalDateTime.now().hour
+            timePicker1.minute = LocalDateTime.now().minute
+            val notif: Switch? = findViewById(R.id.switch1)
+            notif?.isChecked = false
 
             curIcon = 0
             reminderIndex = 0
