@@ -38,7 +38,7 @@
         android:id="@+id/imageButton"
         android:layout_width="65dp"
         android:layout_height="51dp"
-        android:layout_marginTop="285dp"
+        android:layout_marginTop="470dp"
         android:onClick="changeIcon"
         android:tint="#000000"
         android:visibility="gone"
@@ -48,15 +48,49 @@
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/time" />
 
+    <Switch
+        android:id="@+id/switch1"
+        android:layout_width="138dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="470dp"
+        android:text="Notification"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <EditText
         android:id="@+id/ReminderMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="128dp"
+        android:layout_marginTop="430dp"
         android:ems="10"
         android:inputType="textPersonName"
         android:text="Message"
         android:textColor="#FF0000"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TimePicker
+        android:id="@+id/timePicker1"
+        android:layout_width="411dp"
+        android:layout_height="335dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <DatePicker
+        android:id="@+id/simpleDatePicker"
+        android:layout_width="294dp"
+        android:layout_height="94dp"
+        android:layout_marginTop="340dp"
+        android:calendarViewShown="false"
+        android:datePickerMode="spinner"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
