@@ -9,22 +9,30 @@ import android.content.Intent
 import android.database.Cursor
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.View
 import android.widget.*
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.work.*
-import java.text.SimpleDateFormat
+import com.google.android.gms.maps.*
+import com.google.android.gms.maps.model.CircleOptions
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MarkerOptions
+import java.io.File
 import java.time.LocalDateTime
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
+import kotlin.math.absoluteValue
+import kotlin.math.pow
+
 
 data class Reminder(
     val message: String = "Message",
-    val location_x: String = "",
-    val location_y: String = "",
+    val location_x: Double = 0.0,
+    val location_y: Double = 0.0,
     val reminder_time: String = "",
     val creation_time: String = "",
     val creator_id: Int = 0,
@@ -79,6 +87,9 @@ class ReminderWorker(appContext: Context, workerParams: WorkerParameters):
     var params = workerParams
     @RequiresApi(Build.VERSION_CODES.O)
     override fun doWork(): Result {
+        val locx = inputData.getDouble("location_x", 0.0)
+        val locy = inputData.getDouble("location_y", 0.0)
+
         inputData.getString("message")?.let { showNofitication(
             con, it, inputData.getInt(
                 "icon",
@@ -91,15 +102,106 @@ class ReminderWorker(appContext: Context, workerParams: WorkerParameters):
     }
 }
 
-class MainActivity : ListActivity() {
+class MainActivity : ListActivity(), OnMapReadyCallback {
     var listItems = ArrayList<String>()
     var reminderList = ArrayList<Reminder>()
     var state = "MAIN"
     var curIcon = 0
     var reminderIndex = 0
+    var gmap : GoogleMap? = null
+    var circleLatLng : LatLng = LatLng(65.0, 25.5)
+    var circleRad = 0.0
 
     //DEFINING A STRING ADAPTER WHICH WILL HANDLE THE DATA OF THE LISTVIEW
     var adapter: ArrayAdapter<String>? = null
+
+    val mapCickListener = object : GoogleMap.OnMapClickListener {
+        override fun onMapClick(p0: LatLng?) {
+            gmap?.clear()
+            circleRad = 100.0
+            if (p0 != null && state == "EDIT") {
+                circleLatLng = p0
+                gmap?.addCircle(CircleOptions().center(p0).radius(circleRad))
+                Log.d("ME", p0.toString()+" "+circleRad.toString())
+            }
+            else if(p0 != null){
+                gmap?.addMarker(MarkerOptions().position(p0))
+                for(r in reminderList){
+                    val locdif = (p0.latitude-r.location_x).absoluteValue + (p0.longitude-r.location_y).absoluteValue
+                    val rtimesplit = r.reminder_time.split(".")
+                    val year = rtimesplit[0].toInt()
+                    val month = rtimesplit[1].toInt()
+                    val day = rtimesplit[2].toInt()
+                    val hour = rtimesplit[3].toInt()
+                    val minute = rtimesplit[4].toInt()
+
+                    val date: Date = Date()
+                    val curMillis = date.time
+
+                    val calendar = Calendar.getInstance()
+                    calendar.set(year, month, day, hour, minute)
+                    val pickedMillis = calendar.timeInMillis
+
+                    if(locdif<0.005 && curMillis >= pickedMillis){
+                        var mydatabase = openOrCreateDatabase("RemindersDB", MODE_PRIVATE, null)
+                        mydatabase.delete(
+                                "Reminders",
+                                "creation_time = ?",
+                                Array(1) { i -> r.creation_time })
+                        reminderList.remove(r)
+                        adapter?.clear()
+                        for(r in reminderList){
+                            adapter?.add(r.message)
+                        }
+                        showNofitication(applicationContext, r.message, if (r.icon == 0) R.drawable.time else R.drawable.night)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onMapReady(mMap: GoogleMap) {
+        Log.d("ME", "MAP READY")
+        gmap = mMap
+        gmap?.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(65.0, 25.5), 10.0f))
+        mMap.setOnMapClickListener(mapCickListener)
+    }
+
+    override fun onResume() {
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        super.onResume()
+        mapView.onResume()
+    }
+
+    override fun onStart() {
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        super.onStart()
+        mapView.onStart()
+    }
+
+    override fun onStop() {
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        super.onStop()
+        mapView.onStop()
+    }
+
+    override fun onPause() {
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        mapView.onPause()
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        mapView.onDestroy()
+        super.onDestroy()
+    }
+
+    override fun onLowMemory() {
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        super.onLowMemory()
+        mapView?.onLowMemory()
+    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,21 +212,32 @@ class MainActivity : ListActivity() {
             android.R.layout.simple_list_item_1,
             listItems
         )
+
+        var mapViewBundle: Bundle? = null
+        if (savedInstanceState != null) {
+            mapViewBundle = savedInstanceState.getBundle("MapViewBundleKey")
+        }
+
+        val mapView = findViewById<MapView>(R.id.mapView4);
+        mapView.onCreate(mapViewBundle);
+        mapView.getMapAsync(this);
+
         listAdapter = adapter
         var mydatabase = openOrCreateDatabase("RemindersDB", MODE_PRIVATE, null)
         //mydatabase.execSQL ("DROP TABLE IF EXISTS Reminders")
         mydatabase.execSQL(
             "CREATE TABLE IF NOT EXISTS Reminders(message VARCHAR," +
-                    "location_x VARCHAR,location_y VARCHAR,reminder_time VARCHAR," +
+                    "location_x DOUBLE,location_y DOUBLE,reminder_time VARCHAR," +
                     "creation_time VARCHAR primary key,creator_id integer,reminder_seen integer, icon integer);"
         )
+
         val resultSet: Cursor = mydatabase.rawQuery("Select * from Reminders", null)
         if(resultSet.moveToFirst()) {
             do {
                 var newReminder = Reminder(
                     resultSet.getString(0),
-                    resultSet.getString(1),
-                    resultSet.getString(2),
+                    resultSet.getDouble(1),
+                    resultSet.getDouble(2),
                     resultSet.getString(3),
                     resultSet.getString(4),
                     resultSet.getInt(5),
@@ -152,6 +265,9 @@ class MainActivity : ListActivity() {
             timePicker1.hour = times[3].toInt()
             timePicker1.minute = times[4].toInt()
             val notif: Switch? = findViewById(R.id.switch1)
+            gmap?.clear()
+            circleLatLng = LatLng(reminderList[position].location_x, reminderList[position].location_y)
+            gmap?.addCircle(CircleOptions().center(circleLatLng).radius(100.0))
             notif?.isChecked = false
             reminderIndex = position
             mydatabase.delete(
@@ -176,7 +292,7 @@ class MainActivity : ListActivity() {
 
         if(state=="EDIT"){
             var newReminder = Reminder(
-                editReminder?.text.toString(), "", "",
+                editReminder?.text.toString(), circleLatLng.latitude, circleLatLng.longitude,
                 "${datePicker.year}.${datePicker.month}.${datePicker.dayOfMonth}.${timePicker1.hour}.${timePicker1.minute}",
                 LocalDateTime.now().toString(), 0, false, curIcon
             )
@@ -199,16 +315,24 @@ class MainActivity : ListActivity() {
                 val curMillis = date.time
 
                 val calendar = Calendar.getInstance()
-                calendar.set(datePicker.year, datePicker.month, datePicker.dayOfMonth, timePicker1.hour, timePicker1.minute)
+                calendar.set(
+                    datePicker.year,
+                    datePicker.month,
+                    datePicker.dayOfMonth,
+                    timePicker1.hour,
+                    timePicker1.minute
+                )
                 val pickedMillis = calendar.timeInMillis
 
                 val reminderWorkRequest: WorkRequest =
                     OneTimeWorkRequestBuilder<ReminderWorker>()
-                        .setInitialDelay(pickedMillis-curMillis, TimeUnit.MILLISECONDS)
+                        .setInitialDelay(pickedMillis - curMillis, TimeUnit.MILLISECONDS)
                         .setInputData(
                             workDataOf(
                                 "message" to newReminder.message,
-                                "icon" to if (curIcon == 0) R.drawable.time else R.drawable.night
+                                "icon" to if (curIcon == 0) R.drawable.time else R.drawable.night,
+                                "location_x" to newReminder.location_x,
+                                "location_y" to newReminder.location_y
                             )
                         )
                         .build()
@@ -235,13 +359,17 @@ class MainActivity : ListActivity() {
             OKButton?.text = oktext
             listView.visibility = View.GONE
             image?.visibility = View.VISIBLE
-            timePicker1?.visibility = View.VISIBLE
-            datePicker?.visibility = View.VISIBLE
+            timePicker1.visibility = View.VISIBLE
+            datePicker.visibility = View.VISIBLE
             notif?.visibility = View.VISIBLE
 
             val timePicker1: TimePicker = findViewById(R.id.timePicker1);
             val datePicker: DatePicker = findViewById(R.id.simpleDatePicker)
-            datePicker.updateDate(LocalDateTime.now().year, LocalDateTime.now().monthValue-1, LocalDateTime.now().dayOfMonth)
+            datePicker.updateDate(
+                LocalDateTime.now().year,
+                LocalDateTime.now().monthValue - 1,
+                LocalDateTime.now().dayOfMonth
+            )
             timePicker1.hour = LocalDateTime.now().hour
             timePicker1.minute = LocalDateTime.now().minute
             val notif: Switch? = findViewById(R.id.switch1)

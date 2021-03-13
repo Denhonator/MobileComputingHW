@@ -54,7 +54,7 @@
         android:layout_height="48dp"
         android:layout_marginStart="10dp"
         android:layout_marginTop="470dp"
-        android:text="Notification"
+        android:text="Timed"
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -95,6 +95,13 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/mapView4"
+        android:layout_width="match_parent"
+        android:layout_height="230dp"
+        android:layout_marginTop="520dp"
         app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
